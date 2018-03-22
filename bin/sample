@@ -35,8 +35,8 @@ opts={
 
 # Parse Options
 ARGV.find_all do |a| a=~/\-\-(.*)=(.*)/ end.each do |a|
-  k,v = a.gsub(/^\--/).split("=")
-  if opts.has_key?(k) then opts[k][:value] = v end
+  k,v = a.gsub(/^\--/, '').split("=")
+  if opts.has_key?(k=k.to_sym) then opts[k][:value] = v end
 end
 
 # Short options
