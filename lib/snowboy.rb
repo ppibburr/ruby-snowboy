@@ -25,10 +25,7 @@ module Snowboy
   class Detector
     attr_reader :resource, :model, :sensitivity, :audio_gain, :ptr
     def initialize resource: nil, model: nil, sensitivity: 0.5, gain: 1
-      @ptr = Lib::SnowboyDetectConstructor(resource, model)
-    
-      @resource = resource
-      @model    = model
+      @ptr = Lib::SnowboyDetectConstructor(@resource=File.expand_path(resource), @model=File.expand_path(model))
     
       self.sensitivity  = sensitivity;
       self.audio_gain   = gain;  
@@ -68,6 +65,7 @@ module Snowboy
     end
     
     def sensitivity= lvl
+      @sensitivity=lvl
       Lib::SnowboyDetectSetSensitivity(ptr, lvl.to_s)
     end
     

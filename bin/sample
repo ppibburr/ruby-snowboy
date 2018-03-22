@@ -4,15 +4,84 @@ $: << File.join(File.dirname(__FILE__), '..', 'lib')
 
 require 'snowboy'
 
-resource_filename = "../snowboy/resources/common.res";
-model_filename    = "../snowboy/resources/models/snowboy.umdl";
+def usage opts
+  puts """
+#{File.expand_path(__FILE__)} [OPTIONS]
 
-detector = Snowboy::Detector.new(resource: resource_filename, model: model_filename, gain: 0.5, sensitivity: 1);
+Listens for hot word
+
+OPTIONS:
+
+"""
+
+  puts(opts.map do |k,v|
+  "--#{k}#{v[:short] ? ", #{v[:short]}": '=<VALUE>'}".ljust(25)+"#{opts[k][:desc]}. Default: #{opts[k][:short] ? false : opts[k][:value]}"
+  end.join("\n")+"\n\n")
+  
+  exit
+end
+
+opts={
+  resource:          {value: File.expand_path("../snowboy/resources/common.res"), desc: "Path to resource"},
+  model:             {value: File.expand_path("../snowboy/resources/models/snowboy.umdl"), desc: "Path to model"},
+  gain:              {value: 0.5, desc: "Sets the audio gain"},
+  sensitivity:       {value: 1.0, desc: "Sets the sensitivity"},
+  alert:             {value: false, desc: "Play sound on detect", short: '-a'},
+  alert_path:        {value: File.expand_path("../snowboy/resources/ding.wav"), desc: "Path to sound file"},
+  verbose:           {value: false, desc: "print more information", short: "-v"},
+  alexa:             {value: false, desc: "Detect 'Alexa'", short: "-A"},  
+  help:              {value: false, desc: "Show this message", short: "-h"}
+}
+
+# Parse Options
+ARGV.find_all do |a| a=~/\-\-(.*)=(.*)/ end.each do |a|
+  k,v = a.gsub(/^\--/).split("=")
+  if opts.has_key?(k) then opts[k][:value] = v end
+end
+
+# Short options
+ARGV.find_all do |a| a !~ /\=/ end.each do |a|
+  2.times do a = a.gsub(/^\-/,'') end
+  
+  unless opts.has_key?(k=a.to_sym)
+    long = nil
+    if opts.find do |k,v| long=k; v[:short] == "-#{a}" end
+      k = long
+    end
+  end
+  
+  opts[k][:value] = true if opts[k][:short]
+end
+
+if opts[:help][:value]
+  usage opts
+end
+
+# Detecting 'Alexa' ?
+if opts[:alexa][:value]
+  opts[:model][:value] = File.expand_path("../snowboy/resources/alexa/alexa_02092017.umdl")
+end
+
+## Program starts
+# ...
+detector = Snowboy::Detector.new(resource:    opts[:resource][:value],
+                                 model:       opts[:model][:value],
+                                 gain:        opts[:gain][:value].to_f,
+                                 sensitivity: opts[:sensitivity][:value].to_f);
+                                 
+puts({
+  gain:        detector.audio_gain,
+  sensitivity: detector.sensitivity,
+  resource:    detector.resource,
+  model:       detector.model
+})  if opts[:verbose][:value]
 
 puts "Listening... Press Ctrl+C to exit"
 
 detector.run do |result|
   if (result > 0)
+    `play #{opts[:alert_path][:value]}` if opts[:alert][:value]
+	
 	puts "Hotword %d detected!" % result
   end
 end
